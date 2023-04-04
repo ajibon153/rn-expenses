@@ -10,6 +10,7 @@ import LoadingOverlay from '../components/UI/LoadingOverlay';
 
 export default function ManageExpense({ route, navigation }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [Error, setError] = useState(false);
   const editedExpensesId = route.params?.expenseId;
   const isEditing = !!editedExpensesId;
 
@@ -27,10 +28,14 @@ export default function ManageExpense({ route, navigation }) {
 
   async function deleteHandler() {
     setIsSubmitting(true);
-    await deleteExpenses(editedExpensesId);
-    expenseCtx.deleteExpense(editedExpensesId);
-    setIsSubmitting(false);
-    navigation.goBack();
+    try {
+      await deleteExpenses(editedExpensesId);
+      expenseCtx.deleteExpense(editedExpensesId);
+      navigation.goBack();
+    } catch (error) {
+      setError('Could not fetch expenses');
+      setIsSubmitting(false);
+    }
   }
   function cancelHandler() {
     navigation.goBack();
@@ -38,18 +43,24 @@ export default function ManageExpense({ route, navigation }) {
 
   async function confirmHandler(expensesData) {
     setIsSubmitting(true);
-    if (isEditing) {
-      await updateExpenses(editedExpensesId, expensesData);
-      expenseCtx.updateExpense(editedExpensesId, expensesData);
-    } else {
-      const id = await storeExpenses(expensesData);
-      expenseCtx.addExpense({ ...expensesData, id });
+    try {
+      if (isEditing) {
+        await updateExpenses(editedExpensesId, expensesData);
+        expenseCtx.updateExpense(editedExpensesId, expensesData);
+      } else {
+        const id = await storeExpenses(expensesData);
+        expenseCtx.addExpense({ ...expensesData, id });
+      }
+      navigation.goBack();
+    } catch (error) {
+      setError('Could not fetch expenses');
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
-    navigation.goBack();
   }
 
   if (isSubmitting) return <LoadingOverlay />;
+  if (!isSubmitting && Error)
+    return <ErrorOverlay message={Error} onConfirm={() => setError(null)} />;
 
   return (
     <View style={styles.container}>
